@@ -1,0 +1,13 @@
+db.sqlite3
+env
+.idea/*
+secrets.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+__pycache__/*
+**/__pycache__
+*.py[cod]
+
+.DS_Store
+venv
