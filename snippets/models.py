@@ -1,10 +1,13 @@
 from django.db import models
-from pygments.lexers import get_all_lexers
+from pygments.lexers import get_all_lexers, get_lexer_by_name
 from pygments.styles import get_all_styles
+from pygments.formatters.html import HtmlFormatter
+from pygments import highlight
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
 STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
+
 
 
 class Snippet(models.Model):
@@ -14,6 +17,18 @@ class Snippet(models.Model):
     linenos = models.BooleanField(default=False)
     language = models.CharField(choices=LANGUAGE_CHOICES, default='python', max_length=100)
     style = models.CharField(choices=STYLE_CHOICES, default='friendly', max_length=100)
+    owner = models.ForeignKey('auth.User', related_name='snippets', on_delete=models.PROTECT) # Snippet 인스턴스를 생성한 유저.
+    highlighted = models.TextField() # HTML 표현식 저장.
 
     class Meta:
         ordering = ['created']
+
+    # Snippet 모델의 save() 메소드를 오버라이딩, 추가로 정의한 highlighted 필드의 값을 자동으로 저장처리.
+    def save(self, *args, **kwargs):
+        lexer = get_lexer_by_name(self.language)
+        linenos = 'table' if self.linenos else False
+        options = {'title': self.title} if self.title else {}
+        formatter = HtmlFormatter(style=self.style, linenos=linenos,
+                                  full=True, **options)
+        self.highlighted = highlight(self.code, lexer, formatter)
+        super().save(*args, **kwargs)
